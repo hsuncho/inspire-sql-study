@@ -262,9 +262,384 @@ SELECT NUM `구매번호`,
 FROM buytbl;
 
 SELECT LEFT(EMP_NO, 6),
-		RIGHT(EMP_NO, 7)
-		LEFT(EMP_NO, 6) + RIGHT(EMP_NO, 7)
+		RIGHT(EMP_NO, 7),
+		LEFT(EMP_NO, 6) + RIGHT(EMP_NO, 7), 
+		CAST( LEFT(EMP_NO, 6) AS INT) + CAST( RIGHT(EMP_NO, 7) AS INT)
 FROM employee;
 
+-- 숫자 함수
+SELECT ABS(-100),
+		CEILING(4.7),
+		CEILING(4.1),
+		FLOOR(4.7),
+		FLOOR(4.1),
+		ROUND(4.5),
+		ROUND(4.4),
+		TRUNCATE(123.1234567, 2),
+		TRUNCATE(123.1234567, -2);
+		
+-- 날짜 함수
+SELECT NOW(),
+		SYSDATE(),
+		CURDATE(),
+		CURTIME();
+		
+-- 날짜 연산
+-- ADDDATE(DATE, INTERVAL, EXPR TYPE), DATA_ADD();
+-- SUBDATE()
+-- TYPE: YEAR, MONTH, DAY
+SELECT NOW() + 1;
+
+SELECT CURDATE(),
+		ADDDATE(CURDATE(), INTERVAL 1 MONTH),
+		SUBDATE(CURDATE(), INTERVAL 1 MONTH),
+		SYSDATE(),
+		ADDTIME(SYSDATE(), '1:1:1'),
+		SUBTIME(SYSDATE(), '2:0:0');
+
+-- 오늘 날짜를 기준으로 근속년수가 25년 이상인 사원의 정보 검색
+-- DATEDIFF()
+SELECT DATEDIFF(CURDATE(), '2000-01-01') / 365;
+
+SELECT *
+FROM employee
+WHERE HIRE_DATE <= DATE_SUB(CURDATE(), INTERVAL 25 YEAR);
+
+SELECT 
+    EMP_NAME,
+    HIRE_DATE,
+    FLOOR(DATEDIFF(CURDATE(), HIRE_DATE) / 365) AS `근속년수`
+FROM employee
+WHERE DATEDIFF(CURDATE(), HIRE_DATE) >= (25 * 365);
+
+-- YEAR(), MONTH(), DAY(), HOUR(), MINUTE(), SECOND()
+SELECT CAST(YEAR(HIRE_DATE) AS CHAR),
+		CAST(MONTH(HIRE_DATE) AS CHAR),
+		CAST(DAY(HIRE_DATE) AS CHAR)
+FROM employee;
+
+-- 기타 변형 함수
+-- 제어 흐름 함수(IF, IFNULL, NULLIF, CASE ~ WHEN ~ END)
+
+SELECT IF(100 > 200 , '참', '거짓');
+
+SELECT 	CASE 1
+				WHEN 1 THEN '1'
+				WHEN 10 THEN '10'
+				ELSE '내가 원하는 값이 아님'
+			END AS `구분`;
 
 
+-- 부서번호가 50번인 사원의 이름, 주민번호, 성별을 검색
+SELECT EMP_NAME,
+		EMP_NO,
+		CASE SUBSTRING(EMP_NO, 8, 1)
+			WHEN '1' OR '3' THEN 'MALE'
+			WHEN '2' OR '4' THEN 'FEMALE'
+		END AS `GENDER`
+FROM employee
+WHERE DEPT_ID = '50';
+
+SELECT EMP_NAME,
+		EMP_NO,
+		CASE 
+			WHEN SUBSTRING(EMP_NO, 8, 1) IN ('1','3') THEN 'MALE'
+			WHEN SUBSTRING(EMP_NO, 8, 1) IN ('2','4') THEN 'FEMALE'
+		END AS `GENDER`
+FROM employee
+WHERE DEPT_ID = '50';
+
+-- 사원 테이블에서 남자 사원의 이름, 주민번호, 성별을 검색
+
+SELECT EMP_NAME,
+		EMP_NO,
+		CASE 
+			WHEN SUBSTRING(EMP_NO, 8, 1) IN ('1','3') THEN 'MALE'
+			WHEN SUBSTRING(EMP_NO, 8, 1) IN ('2','4') THEN 'FEMALE'
+		END AS `GENDER`
+FROM employee
+WHERE SUBSTRING(EMP_NO, 8, 1) IN ('1','3');
+
+SELECT 
+    EMP_NAME,
+    EMP_NO,
+    'MALE' AS GENDER
+FROM employee
+WHERE SUBSTRING(EMP_NO, 8, 1) IN ('1','3');
+
+SELECT *
+FROM department;
+
+SELECT *
+FROM job;
+
+-- 사원테이블에서 직급이 J4인 사원의 사번, 이름, 사수 번호
+-- 사수번호가 없는 사원의 MGR_ID 컬럼에 '관리자' 넣어주고 싶다면
+/*
+NULL
+- 값이 없음
+EMPTY STRING('')
+- 길이가 0 문자열
+*/
+
+SELECT EMP_NO,
+		EMP_NAME,
+		MGR_ID
+FROM employee
+WHERE JOB_ID = 'J4';
+
+SELECT 
+    EMP_NO,
+    EMP_NAME,
+    IFNULL(NULLIF(MGR_ID, ''), '관리자') AS MGR_ID
+FROM employee
+WHERE JOB_ID = 'J4';
+
+SELECT 
+    EMP_NO,
+    EMP_NAME,
+    IFNULL(NULLIF(MGR_ID, ''), '관리자') AS MGR_ID
+FROM employee
+WHERE JOB_ID = 'J4';
+
+SELECT 
+    EMP_NO,
+    EMP_NAME,
+    IF(MGR_ID = '', '관리자', MGR_ID) AS MGR_ID
+FROM employee
+WHERE JOB_ID = 'J4';
+
+SELECT 
+    EMP_NO,
+    EMP_NAME,
+    CASE
+		WHEN MGR_ID = '' THEN '관리자'
+		ELSE MGR_ID
+	END AS MGR_ID
+FROM employee
+WHERE JOB_ID = 'J4';
+
+-- 사원의 급여 등급을 나누고자 한다
+-- 3000000 이하면 초급, 4000000 이하면 중급, 초과면 고급
+
+SELECT EMP_NO,
+		EMP_NAME,
+		SALARY,
+		CASE
+			WHEN SALARY <= 3000000 THEN '초급'
+			WHEN SALARY <= 4000000 THEN '중급'
+			ELSE '고급'
+		END AS `급여등급`
+FROM employee
+ORDER BY `급여등급` ASC;
+
+-- 복수행(그룹, 집계) 함수 : 여러 행의 결과를 입력으로 하나의 결과를 반환하는 함수
+SELECT COUNT(*), 
+		COUNT(BONUS_PCT),
+		COUNT(IFNULL(BONUS_PCT, 0)),
+		MIN(SALARY),
+		MAX(SALARY),
+		SUM(SALARY),
+		AVG(SALARY)
+FROM employee;
+
+-- WEEKDAY(): 날짜의 요일을 정수로 변환(0 - 월)
+-- DAYOFWEEK(): 요일을 숫자로 변환 (1 : 일요일)
+
+SELECT WEEKDAY(CURDATE()),
+			DAYOFWEEK(CURDATE());
+
+-- GROUP BY : 하위 데이터의 그룹
+-- 특정 컬럼에 대해 동일한 값을 가지는 행들을 하나의 행으로 처리
+-- 통계 작업
+
+SELECT *
+FROM buytbl;
+
+-- 사용자별 구매 총액
+
+SELECT USERID,
+		SUM(PRICE * AMOUNT)
+FROM buytbl
+GROUP BY USERID
+ORDER BY 2 DESC;
+
+-- 사용자별 평균 구매 개수
+SELECT USERID,
+		AVG(AMOUNT)
+FROM buytbl
+GROUP BY USERID
+ORDER BY 2 DESC;
+
+SELECT *
+FROM employee;
+
+-- 부서별 평균 급여
+SELECT 
+    DEPT_ID AS `부서`,
+    AVG(SALARY) AS `평균급여`
+FROM employee
+GROUP BY DEPT_ID
+ORDER BY `평균급여` DESC;
+
+-- 성별에 따른 평균 급여
+SELECT 
+    CASE 
+        WHEN SUBSTRING(EMP_NO, 8, 1) IN ('1','3') THEN '남성'
+        WHEN SUBSTRING(EMP_NO, 8, 1) IN ('2','4') THEN '여성'
+    END AS `성별`,
+    ROUND(AVG(SALARY)) AS `급여 평균`
+FROM employee
+GROUP BY CASE 
+    WHEN SUBSTRING(EMP_NO, 8, 1) IN ('1','3') THEN '남성'
+    WHEN SUBSTRING(EMP_NO, 8, 1) IN ('2','4') THEN '여성'
+END
+ORDER BY `급여 평균` DESC;
+
+-- 부서별 급여 총액이 9000000 이상인 부서
+SELECT DEPT_ID AS `부서`,
+		SUM(SALARY) AS `급여 총합`
+FROM employee
+GROUP BY DEPT_ID
+HAVING SUM(SALARY) >= 9000000
+ORDER BY 1;
+
+SELECT * FROM buytbl;
+
+-- buytbl에서 사용자별 총 구매액이 100 이상인 사용자들만 필터링
+SELECT USERID,
+		SUM(PRICE * AMOUNT) AS `총 구매액`
+FROM buytbl
+GROUP BY USERID
+HAVING SUM(PRICE * AMOUNT) >= 100;
+
+-- GROUP BY 확장 기능 : 계층적인 집계 결과 WITH ROLLUP
+-- 구매한 목록 중 그룹이름별 구매비용을 검색
+
+SELECT *
+FROM buytbl;
+
+SELECT GROUPNAME, NUM,
+		SUM(PRICE * AMOUNT) AS `구매비용`
+FROM buytbl
+GROUP BY GROUPNAME, NUM WITH ROLLUP;
+
+SELECT GROUPNAME, NUM,
+		SUM(PRICE * AMOUNT) AS `구매비용`
+FROM buytbl
+GROUP BY ROLLUP(GROUPNAME, NUM);
+
+-- JOIN : n개 이상의 테이블을 서로 묶어서 하나의 결과 집합을 만들어내는 것
+-- 관계형 데이터베이스의 가장 큰 특징
+-- 테이블 관계 (1:N, 1:1)
+
+/*
+ANSI 표준 구문
+
+SELECT
+FROM TABLE01 ALIAS
+[INNER] JOIN TABLE02 ALIAS ON(조건식)
+[INNER} JOIN TABLE02 ALIAS USING(컬럼명)
+*/
+
+SELECT E.EMP_NAME,
+		D.DEPT_NAME,
+		E.DEPT_ID
+FROM department D
+JOIN employee E
+USING(DEPT_ID);
+
+SELECT E.EMP_NAME,
+		D.DEPT_NAME,
+		L.LOC_DESCRIBE
+FROM department D
+JOIN employee E USING(DEPT_ID)
+JOIN location L ON(L.LOCATION_ID = D.LOC_ID)
+WHERE DEPT_NAME LIKE '해외%';
+
+-- 사용자가 JYP인 유저의 이름과 구매상품
+SELECT USERID, 
+		PRODNAME
+FROM usertbl
+JOIN buytbl USING(USERID)
+WHERE USERID = 'JYP';
+
+-- 사용자 아이디, 이름, 구매상품, 연락처(MOBILE1+MOBILE2)
+SELECT u.USERID,
+       u.NAME,
+       b.PRODNAME,
+       CONCAT(u.MOBILE1, u.MOBILE2)
+FROM usertbl u
+JOIN buytbl b USING(USERID);
+
+-- 위 요구사항에서 구매이력이 있는 회원만 조회
+SELECT u.USERID,
+       u.NAME,
+       CONCAT(u.MOBILE1, u.MOBILE2)
+FROM usertbl u
+WHERE EXISTS(SELECT *
+				FROM buytbl b
+				WHERE u.userID = b.userID);
+
+-- 업무적인 연관성이 없는 테이블도 조인이 가능하다(ON 구문으로)
+-- 이름, 급여, 급여등급을 검색한다면?
+
+SELECT
+		e.EMP_NAME AS 이름,
+       e.SALARY AS 급여,
+       s.slevel AS 급여등급
+FROM employee e
+JOIN sal_grade s
+  ON e.SALARY BETWEEN s.lowest AND s.highest;
+
+-- OUTER JOIN (LEFT | RIGHT)
+-- 조인의 조건에 만족하지 않는 모든 행을 조회
+
+SELECT *
+FROM department D
+RIGHT JOIN employee E ON(D.DEPT_ID = E.DEPT_ID);
+
+-- 부서배치를 받지 않은 사원의 이름, 부서명을 조회
+SELECT e.EMP_NAME,
+		d.DEPT_NAME
+FROM employee e
+LEFT JOIN department d ON(e.DEPT_ID = d.DEPT_ID)
+WHERE e.DEPT_ID IS NULL ;
+
+SELECT EMP_NAME,
+		DEPT_NAME
+FROM department D
+RIGHT JOIN employee E ON(e.DEPT_ID = D.DEPT_ID)
+WHERE D.DEPT_ID IS NULL;
+
+-- 사원의 이름과 사수의 이름 검색
+SELECT e.EMP_NAME `사원명`,
+			m.EMP_NAME `사수명`,
+			s.EMP_NAME `최고사수`
+FROM employee e
+LEFT JOIN employee m
+	ON e.MGR_ID = m.EMP_ID
+LEFT JOIN employee s
+	ON m.MGR_ID = s.EMP_ID;
+
+-- 직급이 대리이고 지역이 아시아로 시작하는 사원정보
+
+SELECT e.EMP_NAME,
+       j.JOB_TITLE,
+       d.DEPT_NAME,
+       l.LOC_DESCRIBE,
+       c.COUNTRY_NAME,
+       s.SLEVEL
+FROM employee e
+LEFT JOIN department d
+    ON e.DEPT_ID = d.DEPT_ID
+LEFT JOIN location l
+    ON d.LOC_ID = l.LOCATION_ID
+LEFT JOIN country c
+    ON l.COUNTRY_ID = c.COUNTRY_ID
+LEFT JOIN job j
+    ON e.JOB_ID = j.job_id
+JOIN sal_grade s
+    ON e.SALARY BETWEEN s.LOWEST AND s.HIGHEST
+WHERE j.JOB_TITLE = '대리'
+  AND l.LOC_DESCRIBE LIKE '아시아%';
