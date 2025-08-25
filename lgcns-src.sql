@@ -643,3 +643,131 @@ JOIN sal_grade s
     ON e.SALARY BETWEEN s.LOWEST AND s.HIGHEST
 WHERE j.JOB_TITLE = '대리'
   AND l.LOC_DESCRIBE LIKE '아시아%';
+  
+-- DAY04 SUBQUERY & DDL(데이터 정의어)
+-- SUBQUERY : 하나의 쿼리가 다른 쿼리를 포함하는 구조
+-- 유형 : 단일행(단일열, 다중열), 다중행(단일열, 다중열)
+-- where, having 절 (subquery), select 절(scalar subquery), from 절(inline view)
+
+SELECT STUDENT_NAME 
+FROM tb_student
+WHERE ABSENCE_YN = 'Y' 
+AND DEPARTMENT_NO = (
+	SELECT DEPARTMENT_NO 
+	FROM tb_department 
+	WHERE DEPARTMENT_NAME = '국어국문학과'
+)
+AND STUDENT_SSN LIKE '%-2%';
+
+-- 나승원 사원과 같은 부서원을 검색
+SELECT *
+FROM employee
+WHERE DEPT_ID = (SELECT DEPT_ID
+						FROM employee
+						WHERE EMP_NAME = '나승원');
+
+-- 부서별 급여 총합
+-- 부서별 급여 총합이 가장 높은 부서만 확인
+SELECT D.DEPT_NAME,
+		SUM(SALARY) AS `TOTAL`
+FROM employee E
+JOIN department D ON(E.DEPT_ID = D.DEPT_ID)
+GROUP BY D.DEPT_ID
+HAVING SUM(SALARY) = ( SELECT MAX(TOTAL)
+								FROM ( SELECT DEPT_ID,
+											SUM(SALARY) AS `TOTAL`
+											FROM employee E
+											GROUP BY DEPT_ID
+										) T
+							);
+
+SELECT D.DEPT_NAME, V.TOTAL
+FROM (
+    SELECT DEPT_ID, SUM(SALARY) AS TOTAL
+    FROM employee
+    GROUP BY DEPT_ID
+) V
+JOIN department D ON V.DEPT_ID = D.DEPT_ID
+WHERE V.TOTAL = (
+    SELECT MAX(TOTAL)
+    FROM (
+        SELECT SUM(SALARY) AS TOTAL
+        FROM employee
+        GROUP BY DEPT_ID
+    ) X
+);
+
+-- LIMIT 절 == TOP - N QUERY
+-- 사용하기 전 반드시 정렬
+EXPLAIN
+SELECT D.DEPT_NAME, SUM(E.SALARY) AS TOTAL
+FROM employee E
+JOIN department D ON E.DEPT_ID = D.DEPT_ID
+GROUP BY D.DEPT_NAME
+ORDER BY TOTAL DESC
+LIMIT 1;
+
+-- M+1번지부터 N개를 가져온다
+SELECT D.DEPT_NAME, SUM(E.SALARY) AS TOTAL
+FROM employee E
+JOIN department D ON E.DEPT_ID = D.DEPT_ID
+GROUP BY D.DEPT_NAME
+ORDER BY TOTAL DESC
+LIMIT 2 OFFSET 1;
+
+-- 최소 급여 확인
+SELECT DEPT_ID, MIN(SALARY)
+FROM employee
+GROUP BY DEPT_ID;
+
+-- 다중열 서브쿼리가 필요한 이유
+-- 부서별 최소 급여를 받는 사원정보를 검색
+SELECT *
+FROM employee
+WHERE (DEPT_ID, SALARY) IN (	SELECT DEPT_ID, MIN(SALARY)
+										FROM employee
+										GROUP BY DEPT_ID);
+
+
+-- 과장직급의 급여
+SELECT SALARY
+FROM employee E
+JOIN job J 
+ON (E.JOB_ID = J.JOB_ID)
+WHERE JOB_TITLE = '과장';
+
+-- 대리 직급의 급여
+SELECT SALARY
+FROM employee E
+JOIN job J 
+ON (E.JOB_ID = J.JOB_ID)
+WHERE JOB_TITLE = '대리';
+
+-- 다중행 서브쿼리일 경우 사용할 수 있는 연산자(IN, ANY, ALL)
+/*
+> ANY, < ANY
+> ALL, < ALL
+
+*/
+
+-- 단일행 서브쿼리는 일반연산자 사용 가능
+
+-- 과장 직급보다 많은 급여를 받는 대리직급 사원의 정보를 검색
+SELECT EMP_NAME,
+		SALARY
+FROM employee E
+JOIN job J 
+ON (E.JOB_ID = J.JOB_ID)
+WHERE JOB_TITLE = '대리'
+AND SALARY > ANY (SELECT SALARY
+						FROM employee E
+						JOIN job J 
+						ON (E.JOB_ID = J.JOB_ID)
+						WHERE JOB_TITLE = '과장');
+
+
+
+
+
+
+
